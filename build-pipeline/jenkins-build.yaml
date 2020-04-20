@@ -1,0 +1,55 @@
+kind: "BuildConfig"
+apiVersion: "v1"
+metadata:
+  name: "dotnetcore-ex-pipeline"
+spec:
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        def buildName = 'dotnet-build-git'
+
+        openshift.withCluster() {
+        env.NAMESPACE = openshift.project()
+        env.APP_NAME = "${JOB_NAME}".replaceAll(/-build.*/, '')
+        echo "Starting Pipeline for ${APP_NAME}..."
+        env.BUILD = "${env.NAMESPACE}"
+        env.DEV = "${env.DEV_NAMESPACE}"
+        }
+
+        podTemplate(
+            label: "dotnet-pod",
+            cloud: "openshift",
+            serviceAccount: "jenkins",
+            containers: [
+            containerTemplate(
+            name: "jnlp",
+            image: "registry.redhat.io/dotnet/dotnet-31-jenkins-agent-rhel7:latest"
+            )
+        ]) {
+            node("dotnet-pod") {
+                container('jnlp') {
+                    stage('preamble') {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    echo "Using project: ${openshift.project()}"
+                                }
+                            }
+                        }
+                    }
+                    stage('build') {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    def bc = openshift.selector("bc", buildName)
+                                    def buildSelector = bc.startBuild()
+
+                                    buildSelector.logs('-f')
+                                }
+                            }
+                        } // script
+                    }
+                }
+            }
+        }
+      type: JenkinsPipeline

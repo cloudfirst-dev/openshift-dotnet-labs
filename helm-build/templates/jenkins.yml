@@ -1,0 +1,150 @@
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    haproxy.router.openshift.io/timeout: 4m
+  name: {{ .Values.jenkins.serviceName }}
+spec:
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: {{ .Values.jenkins.serviceName }}
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    template.alpha.openshift.io/wait-for-ready: "true"
+  name: {{ .Values.jenkins.serviceName }}
+spec:
+  replicas: 1
+  selector:
+    name: {{ .Values.jenkins.serviceName }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.jenkins.serviceName }}
+    spec:
+      containers:
+      - env:
+        - name: OPENSHIFT_ENABLE_OAUTH
+          value: "{{ .Values.jenkins.enableOAuth }}"
+        - name: OPENSHIFT_ENABLE_REDIRECT_PROMPT
+          value: "true"
+        - name: DISABLE_ADMINISTRATIVE_MONITORS
+          value: "{{ .Values.jenkins.disableAdministrativeMonitors }}"
+        - name: KUBERNETES_MASTER
+          value: "https://kubernetes.default:443"
+        - name: KUBERNETES_TRUST_CERTIFICATES
+          value: "true"
+        - name: JENKINS_SERVICE_NAME
+          value: "{{ .Values.jenkins.serviceName }}"
+        - name: JNLP_SERVICE_NAME
+          value: "{{ .Values.jenkins.jnlpServiceName }}"
+        - name: JENKINS_UC_INSECURE
+          value: "{{ .Values.jenkins.ucUnsecure }}"
+        image: ' '
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /login
+            port: 8080
+          initialDelaySeconds: 420
+          periodSeconds: 360
+          timeoutSeconds: 240
+        name: jenkins
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 8080
+          initialDelaySeconds: 3
+          timeoutSeconds: 240
+        resources:
+          limits:
+            memory: {{ .Values.jenkins.memoryLimit }}
+        securityContext:
+          privileged: false
+        terminationMessagePath: /dev/termination-log
+        volumeMounts:
+        - mountPath: /var/lib/jenkins
+          name: {{ .Values.jenkins.serviceName }}-data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: {{ .Values.jenkins.serviceName }}
+      volumes:
+      - emptyDir:
+          medium: ""
+        name: {{ .Values.jenkins.serviceName }}-data
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - jenkins
+      from:
+        kind: ImageStreamTag
+        name: {{ .Values.jenkins.imageStreamTag }}
+        namespace: {{ .Values.jenkins.imageStreamTagNamespace }}
+      lastTriggeredImage: ""
+    type: ImageChange
+  - type: ConfigChange
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    serviceaccounts.openshift.io/oauth-redirectreference.jenkins: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"{{ .Values.jenkins.serviceName }}"}}'
+  name: {{ .Values.jenkins.serviceName }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.jenkins.serviceName }}_edit
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.jenkins.serviceName }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.jenkins.jnlpServiceName }}
+spec:
+  ports:
+  - name: agent
+    nodePort: 0
+    port: 50000
+    protocol: TCP
+    targetPort: 50000
+  selector:
+    name: {{ .Values.jenkins.serviceName }}
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.openshift.io/dependencies: '[{"name": "{{ .Values.jenkins.jnlpServiceName }}",
+      "namespace": "", "kind": "Service"}]'
+    service.openshift.io/infrastructure: "true"
+  name: {{ .Values.jenkins.serviceName }}
+spec:
+  ports:
+  - name: web
+    nodePort: 0
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    name: {{ .Values.jenkins.serviceName }}
+  sessionAffinity: None
+  type: ClusterIP

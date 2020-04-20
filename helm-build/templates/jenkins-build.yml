@@ -1,0 +1,77 @@
+kind: "BuildConfig"
+apiVersion: build.openshift.io/v1
+metadata:
+  name: "dotnetcore-ex-pipeline"
+spec:
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        def buildName = '{{ include "helm.fullname" . }}'
+
+        openshift.withCluster() {
+        env.NAMESPACE = openshift.project()
+        env.APP_NAME = "${JOB_NAME}".replaceAll(/-build.*/, '')
+        echo "Starting Pipeline for ${APP_NAME}..."
+        env.BUILD = "${env.NAMESPACE}"
+        env.DEV = "${env.DEV_NAMESPACE}"
+        }
+
+        podTemplate(
+            label: "dotnet-pod",
+            cloud: "openshift",
+            serviceAccount: "jenkins",
+            containers: [
+            containerTemplate(
+            name: "jnlp",
+            image: "registry.redhat.io/dotnet/dotnet-31-jenkins-agent-rhel7:latest"
+            )
+        ]) {
+            node("dotnet-pod") {
+                container('jnlp') {
+                    stage('preamble') {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    echo "Using project: ${openshift.project()}"
+                                }
+                            }
+                        }
+                    }
+                    stage('build') {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    def bc = openshift.selector("bc", buildName)
+                                    def buildSelector = bc.startBuild()
+
+                                    buildSelector.logs('-f')
+                                }
+                            }
+                        } // script
+                    }
+                    stage('deploy') {
+                        script {
+                            openshift.withCluster() {
+                                openshift.withProject() {
+                                    def dc = openshift.selector("dc", buildName)
+                                    def dcSelector = dc.rollout().latest()
+
+                                    def latestDeploymentVersion = openshift.selector('dc',buildName).object().status.latestVersion
+                                    echo "Waiting for ${buildName}-${latestDeploymentVersion} to complete rollout"
+                                    def rc = openshift.selector('rc', "${buildName}-${latestDeploymentVersion}")
+                                    timeout (time: 10, unit: 'MINUTES') {
+                                        rc.untilEach(1){
+                                            def rcMap = it.object()
+                                            return (rcMap.status.replicas.equals(rcMap.status.readyReplicas))
+                                        }
+                                    }
+                                }
+                            }
+                        } // script
+                    }
+                }
+            }
+        }
+    type: JenkinsPipeline
+  triggers:
+  - type: ConfigChange

@@ -1,0 +1,27 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: {{ include "helm.fullname" . }}
+  labels:
+    {{- include "helm.labels" . | nindent 4 }}
+spec:
+  source:
+    type: Git
+    git:
+      uri: "{{ .Values.source.repository }}"
+      ref: "{{ .Values.source.ref }}"
+    contextDir: "{{ .Values.source.contextDir }}"
+  strategy:
+    type: "Source"
+    sourceStrategy:
+      from:
+        kind: "ImageStreamTag"
+        name: "dotnet:latest"
+      env:
+        - name: BUILD_LOGLEVEL
+          value: '5'
+  output:
+    to:
+      kind: "ImageStreamTag"
+      name: "{{ include "helm.fullname" . }}:latest"
+  triggers: []

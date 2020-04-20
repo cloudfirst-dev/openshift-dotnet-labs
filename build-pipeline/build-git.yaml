@@ -1,0 +1,26 @@
+kind: "BuildConfig"
+apiVersion: "build.openshift.io/v1"
+metadata:
+  name: "dotnet-build-git"
+spec:
+  source:
+    git:
+      uri: "https://github.com/redhat-developer/s2i-dotnetcore-ex.git"
+      ref: dotnetcore-3.1
+    contextDir: "app"
+  strategy:
+    type: "Source"
+    sourceStrategy:
+      from:
+        kind: "ImageStreamTag"
+        name: "dotnet:latest"
+      runtimeImage: 
+        kind: "ImageStreamTag"
+        name: "dotnet-runtime:latest"
+      env:
+        - name: BUILD_LOGLEVEL
+          value: '5'
+  output:
+    to:
+      kind: "ImageStreamTag"
+      name: "s2i-dotnetcore-ex:latest"

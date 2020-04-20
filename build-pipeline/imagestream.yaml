@@ -1,0 +1,7 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: s2i-dotnetcore-ex
+  labels:
+    app: s2i-dotnetcore-ex
+spec: {}
