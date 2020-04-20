@@ -61,6 +61,14 @@ This will build the container image from the local file system, this is useful w
 ## Build Pipeline POC
 This lab will walk through first having the S2I build handled by a BuildConfig in OpenShift and then move to using Jenkins to trigger the build
 
+### Clone Repo
+1. Clone the lab repo
+    ```
+    cd ~/
+    git clone https://github.com/cloudfirst-dev/openshift-dotnet-labs.git dotnet-labs
+    cd ~/git/dotnet-labs
+    ```
+
 ### Create the ImageStreams
 To be able to build, we need to use the custom builder images we used locally and expose them as ImageStreams inside your namespace.  Since we are using version 3.1 of .NET core these are not included by default in OpenShift
 
