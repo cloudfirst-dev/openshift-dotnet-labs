@@ -2,7 +2,9 @@ apiVersion: v1
 data:
   config.json: |-
     {
+      {{ if (lookup "route.openshift.io/v1" "Route" "dotnet-sso" "basic-dotnet").spec }}
       "baseURL":"http://{{ (lookup "route.openshift.io/v1" "Route" "dotnet-sso" "basic-dotnet").spec.host }}",
+      {{ end }}
       "authURL":"https://{{ (lookup "route.openshift.io/v1" "Route" "dotnet-sso" "sso").spec.host }}/auth/realms/master/protocol/openid-connect/auth",
       "authClientId":"{{ .Values.auth_client_id }}"
     }
