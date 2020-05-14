@@ -1,0 +1,27 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    description: Route for application's http service.
+  labels:
+    app: {{ .Values.application_name }}-web
+    template: basic-dotnet-core
+  name: {{ .Values.application_name }}
+spec:
+  to:
+    name: {{ .Values.application_name }}-web
+    kind: Service
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    description: Route for application's http service.
+  labels:
+    app: {{ .Values.application_name }}
+    template: basic-dotnet-core
+  name: {{ .Values.application_name }}-ui
+spec:
+  to:
+    name: {{ .Values.application_name }}-ui
+    kind: Service

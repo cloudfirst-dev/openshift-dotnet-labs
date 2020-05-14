@@ -1,0 +1,13 @@
+apiVersion: v1
+data:
+  config.json: |-
+    {
+      "baseURL":"http://{{ (lookup "route.openshift.io/v1" "Route" "dotnet-sso" "basic-dotnet").spec.host }}",
+      "authURL":"https://{{ (lookup "route.openshift.io/v1" "Route" "dotnet-sso" "sso").spec.host }}/auth/realms/master/protocol/openid-connect/auth",
+      "authClientId":"{{ .Values.auth_client_id }}"
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    template: basic-dotnet-core
+  name: ui-config

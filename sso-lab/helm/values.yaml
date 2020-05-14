@@ -1,0 +1,14 @@
+application_name: basic-dotnet
+image_stream_namespace: openshift
+image_stream_tag_name: dotnet:2.2
+image_stream_ui_base_tag_name: nodejs:10
+pipeline_script: Jenkinsfile
+source_repository_ref: master
+source_repository_url: https://github.com/cloudfirst-dev/dotnet-core-jwt
+
+
+auth_client_id: 'frontend'
+
+allowed_origin: '*'
+readiness_path: /
+tokens_audience: 'account'

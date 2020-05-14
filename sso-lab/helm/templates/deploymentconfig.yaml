@@ -1,0 +1,112 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: {{ .Values.application_name }}
+    template: basic-dotnet-core
+  name: {{ .Values.application_name }}
+spec:
+  replicas: 1
+  selector:
+    deploymentConfig: {{ .Values.application_name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.application_name }}
+        deploymentConfig: {{ .Values.application_name }}
+      name: {{ .Values.application_name }}
+    spec:
+      containers:
+      - env:
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: TOKENS_AUTHORITY
+          value: "https://{{ (lookup "route.openshift.io/v1" "Route" "dotnet-sso" "sso").spec.host }}/auth/realms/master"
+        - name: TOKENS_AUDIENCE
+          value: {{ .Values.tokens_audience }}
+        - name: ALLOWED_ORIGIN
+          value: "{{ .Values.allowed_origin }}"
+        - name: DOTNET_SSL_DIRS
+          value: /var/run/secrets/kubernetes.io/serviceaccount
+        image: {{ .Values.application_name }}
+        imagePullPolicy: Always
+        name: {{ .Values.application_name }}
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - curl -s 'http://localhost:8080{{ .Values.readiness_path }}'
+      terminationGracePeriodSeconds: 60
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - {{ .Values.application_name }}
+      from:
+        kind: ImageStreamTag
+        name: {{ .Values.application_name }}:latest
+    type: ImageChange
+  - type: ConfigChange
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: {{ .Values.application_name }}
+    template: basic-dotnet-core
+  name: {{ .Values.application_name }}-ui
+spec:
+  replicas: 1
+  selector:
+    deploymentConfig: {{ .Values.application_name }}-ui
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.application_name }}
+        deploymentConfig: {{ .Values.application_name }}-ui
+      name: {{ .Values.application_name }}-ui
+    spec:
+      containers:
+      - image: {{ .Values.application_name }}-ui
+        imagePullPolicy: Always
+        name: {{ .Values.application_name }}-ui
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          exec:
+            command:
+            - /bin/bash
+            - -c
+            - curl -s 'http://localhost:8080{{ .Values.readiness_path }}'
+        volumeMounts:
+        - mountPath: /opt/app-root/src/config
+          name: ui-config
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: ui-config
+        name: ui-config
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - {{ .Values.application_name }}-ui
+      from:
+        kind: ImageStreamTag
+        name: {{ .Values.application_name }}-ui:latest
+    type: ImageChange
+  - type: ConfigChange

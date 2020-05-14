@@ -1,0 +1,30 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    app: {{ .Values.application_name }}
+  name: {{ .Values.application_name }}
+spec:
+  tags:
+  - name: latest
+    from:
+      kind: DockerImage
+      name: quay.io/cloudfirst/dotnet-core-jwt-api:latest
+    referencePolicy:
+      type: Local
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    app: {{ .Values.application_name }}
+  name: {{ .Values.application_name }}-ui
+
+spec:
+  tags:
+  - name: latest
+    from:
+      kind: DockerImage
+      name: quay.io/cloudfirst/dotnet-core-jwt-ui:latest
+    referencePolicy:
+      type: Local

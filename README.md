@@ -151,3 +151,8 @@ This lab will walk through using helm to create both the build items and deploym
     ```
     echo "http://$(oc get route -l "app.kubernetes.io/name=helm" -o jsonpath="{.items[0].spec.host}")"
     ```
+
+## Red Hat SSO Integration
+One of the differences with using .NET Core on linux will be not having integrated authentication like a .NET/Windows Developer will be used to.  To overcome this challenge we are going to demonstrate the use of Red Hat SSO to demonstrate integrating with an Active Directory (although we just simulate that wil local users).  Red Hat SSO also has the ability to integrate with Kerberos which eliminates the need to enter a username/password when accessing a secured application (this is outside the scope of this lab) when using a machine bound to the directory.
+
+Access the lab
