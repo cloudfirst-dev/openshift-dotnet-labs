@@ -25,13 +25,13 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: TOKENS_AUTHORITY
-          value: "https://{{ (lookup "route.openshift.io/v1" "Route" "dotnet-sso" "sso").spec.host }}/auth/realms/master"
+          value: "https://{{ (lookup "route.openshift.io/v1" "Route" .Release.Namespace "sso").spec.host }}/auth/realms/master"
         - name: TOKENS_AUDIENCE
           value: {{ .Values.tokens_audience }}
         - name: ALLOWED_ORIGIN
           value: "{{ .Values.allowed_origin }}"
         - name: DOTNET_SSL_DIRS
-          value: /var/run/secrets/kubernetes.io/serviceaccount
+          value: "/var/run/secrets/kubernetes.io/serviceaccount /ca/trust"
         image: {{ .Values.application_name }}
         imagePullPolicy: Always
         name: {{ .Values.application_name }}
@@ -45,7 +45,15 @@ spec:
             - /bin/bash
             - -c
             - curl -s 'http://localhost:8080{{ .Values.readiness_path }}'
+        volumeMounts:
+        - name: ca-trust
+          mountPath: /ca/trust
       terminationGracePeriodSeconds: 60
+      volumes:
+      - name: ca-trust
+        configMap:
+          name: ca-trust
+          defaultMode: 420
   triggers:
   - imageChangeParams:
       automatic: true

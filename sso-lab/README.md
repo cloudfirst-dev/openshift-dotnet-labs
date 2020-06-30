@@ -1,14 +1,6 @@
 # Red Hat SSO Lab
 This lab shows how to use Red Hat SSO to secure your .NET Core applications using OIDC/OAuth2.0 authorization with JWT Barer tokens.
 
-## Deploy the API and UI
-1. Deploy the helm chart
-    ```
-    cd sso-lab
-    helm install dotnet-sso helm
-    helm upgrade dotnet-sso helm
-    ```
-
 ## Red Hat SSO Setup
 We will setup an instance of Red Hat SSO on an OpenShift cluster for use by a deployed application.
 
@@ -52,6 +44,14 @@ We will setup an instance of Red Hat SSO on an OpenShift cluster for use by a de
 1. Enter "*" in the "Valid Redirect URIs" field (in a real environment this would be a security risk)
 1. Toggle the "Implicit Flow Enabled" to "ON"
 1. Click the "Save" button
+
+## Deploy the API and UI
+1. Deploy the helm chart
+    ```
+    cd sso-lab
+    helm install dotnet-sso helm
+    helm upgrade dotnet-sso helm
+    ```
 
 ## Test the setup
 We will utilize the test ui to login to the SPA using an oauth2 workflow which will then use the response token to make two authenticated requests to the .NET Core web api.  The first will be to retrieve a list of hard coded values.  The second will be to /whoami which will analyze the passed in auth header and extract the user's primary username and return it as a text so the SPA can display a message with "You are successfully authenticated as {username}. You can repeat the steps earlier to add additional users and validate that the message is not hard coded and uses the currently logged in user's JWT token information.  Note the SPA and Red Hat SSO will cache your credentials so you may need to open incognito windows to test different users.
